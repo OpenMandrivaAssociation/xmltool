@@ -1,6 +1,6 @@
 Name:           xmltool
 Version:        3.3
-Release:        2
+Release:        4
 Summary:        Tool to manage XML documents through a Fluent Interface
 
 Group:          Development/Java
