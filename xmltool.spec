@@ -1,9 +1,10 @@
+%{?_javapackages_macros:%_javapackages_macros}
 Name:           xmltool
 Version:        3.3
-Release:        4
+Release:        10.0%{?dist}
 Summary:        Tool to manage XML documents through a Fluent Interface
 
-Group:          Development/Java
+
 License:        ASL 2.0
 URL:            http://code.google.com/p/xmltool
 ### upstream only provides binaries or source without build scripts
@@ -11,40 +12,14 @@ URL:            http://code.google.com/p/xmltool
 # svn export http://xmltool.googlecode.com/svn/tags/xmltool-3.3 xmltool
 # tar cfJ xmltool-3.3.tar.xz xmltool
 Source0:        %{name}-%{version}.tar.xz
-# remove dependency on maven-license-plugin and dependencies for tests
-Patch0:         001-xmltool-fixbuild.patch
 BuildArch:      noarch
-BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  java-devel
 BuildRequires:  jpackage-utils
-BuildRequires:  maven2
-BuildRequires:  maven2-plugin-assembly
-BuildRequires:  maven2-plugin-deploy
-BuildRequires:  maven2-plugin-jar
-BuildRequires:  maven2-plugin-javadoc
-BuildRequires:  maven2-plugin-source
-BuildRequires:  maven2-plugin-clean
-BuildRequires:  maven2-plugin-compiler
-BuildRequires:  maven2-plugin-dependency
-BuildRequires:  maven2-plugin-eclipse
-BuildRequires:  maven2-plugin-idea
-BuildRequires:  maven2-plugin-install
-BuildRequires:  maven2-plugin-plugin
-BuildRequires:  maven2-plugin-resources
-BuildRequires:  maven2-plugin-repository
-BuildRequires:  maven2-plugin-remote-resources
-BuildRequires:  maven2-plugin-site
-BuildRequires:  maven2-plugin-surefire
-BuildRequires:  maven-release-plugin
-BuildRequires:  maven-plugin-jxr
+BuildRequires:  maven-local
+BuildRequires:  maven-remote-resources-plugin
+BuildRequires:  maven-surefire-provider-testng
 BuildRequires:  apache-resource-bundles
-
-Requires:       java 
-Requires:       jpackage-utils
-
-Requires(post):   jpackage-utils
-Requires(postun): jpackage-utils
 
 %description
 XMLTool is a very simple Java library to be able to do all sorts of common 
@@ -54,74 +29,67 @@ together, using the Fluent Interface pattern to facilitate XML manipulations.
 
 %package javadoc
 Summary:        Javadocs for %{name}
-Group:          Development/Java
-Requires:       %{name} = %{version}-%{release}
-Requires:       jpackage-utils
-BuildArch:      noarch
+
 
 %description javadoc
 This package contains the API documentation for %{name}.
 
 %prep
 %setup -q -n %{name}
-%patch0 -p1
 
 # Fix end-of-line encoding
 sed -i 's/\r//' LICENSE.txt
 
+%mvn_file : %{name}
 
 %build
-export MAVEN_REPO_LOCAL=$(pwd)/.m2/repository
-mkdir -p $MAVEN_REPO_LOCAL
+# Remove dep on maven-wagon and maven-license plugins
+%pom_xpath_remove "pom:build/pom:extensions"
+%pom_remove_plugin com.google.code.maven-license-plugin:maven-license-plugin
 
-# tests require surefire/testng, not currently available
-mvn-jpp \
-  -e  \
-  -Dmaven.repo.local=$MAVEN_REPO_LOCAL \
-  -Dmaven.test.skip=true \
-  install javadoc:javadoc
-
+# Disable tests because they require an internet connection to run!
+%mvn_build -f
 
 %install
-rm -rf $RPM_BUILD_ROOT
-mkdir -p $RPM_BUILD_ROOT%{_javadir}
-install -Dp -m 644 target/%{name}-%{version}.jar \
-  $RPM_BUILD_ROOT%{_javadir}/%{name}-%{version}.jar
-(cd $RPM_BUILD_ROOT%{_javadir} && ln -sf %{name}-%{version}.jar %{name}.jar)
+%mvn_install
 
-mkdir -p $RPM_BUILD_ROOT%{_javadocdir}/%{name}-%{version}
-cp -rp target/site/apidocs/  \
-  $RPM_BUILD_ROOT%{_javadocdir}/%{name}-%{version}
-(cd $RPM_BUILD_ROOT%{_javadocdir} && ln -sf %{name}-%{version} %{name})
-
-install -d -m 755 $RPM_BUILD_ROOT%{_datadir}/maven2/poms
-install -pm 644 pom.xml  \
-  $RPM_BUILD_ROOT%{_datadir}/maven2/poms/JPP-%{name}.pom
-
-%add_to_maven_depmap com.mycila.xmltool %{name} %{version} JPP %{name}
-
-
-%clean
-rm -rf $RPM_BUILD_ROOT
-
-
-%files
-%defattr(-,root,root,-)
+%files -f .mfiles
 %doc LICENSE.txt
-%{_datadir}/maven2/poms/*
-%{_mavendepmapfragdir}/*
-%{_javadir}/*
 
+%files javadoc -f .mfiles-javadoc
+%doc LICENSE.txt
 
-%files javadoc
-%defattr(-,root,root,-)
-%{_javadocdir}/%{name}
-%{_javadocdir}/%{name}-%{version}
+%changelog
+* Thu Aug 29 2013 Mat Booth <fedora@matbooth.co.uk> - 3.3-10
+- Update for newer guidelines, rhbz #993147
 
+* Sun Aug 04 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 3.3-9
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_20_Mass_Rebuild
 
-%post
-%update_maven_depmap
+* Sun Mar 03 2013 Mat Booth <fedora@matbooth.co.uk> - 3.3-8
+- Fix FTBFS rhbz #914589.
+- Drop pom patch (use macros instead.)
+- Include licence file in javadoc package.
 
-%postun
-%update_maven_depmap
+* Fri Feb 15 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 3.3-7
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_19_Mass_Rebuild
 
+* Wed Feb 06 2013 Java SIG <java-devel@lists.fedoraproject.org> - 3.3-6
+- Update for https://fedoraproject.org/wiki/Fedora_19_Maven_Rebuild
+- Replace maven BuildRequires with maven-local
+
+* Sun Jul 22 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 3.3-5
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_18_Mass_Rebuild
+
+* Sat Jan 14 2012 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 3.3-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_17_Mass_Rebuild
+
+* Tue Nov 29 2011 Alexander Kurtakov <akurtako@redhat.com> 3.3-3
+- Build with maven 3.
+- Adapt to current guidelines.
+
+* Mon Feb 07 2011 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 3.3-2
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_15_Mass_Rebuild
+
+* Sat May 08 2010 Guido Grazioli <guido.grazioli@gmail.com> - 3.3-1
+- Initial packaging
