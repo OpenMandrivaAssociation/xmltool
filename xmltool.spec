@@ -6,7 +6,7 @@ Summary:        Tool to manage XML documents through a Fluent Interface
 
 
 License:        ASL 2.0
-URL:            http://code.google.com/p/xmltool
+URL:            https://code.google.com/p/xmltool
 ### upstream only provides binaries or source without build scripts
 # tar creation instructions
 # svn export http://xmltool.googlecode.com/svn/tags/xmltool-3.3 xmltool
